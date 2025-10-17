@@ -108,6 +108,50 @@ function mapFlowType(flow) {
 }
 
 /**
+ * PUT /api/flows/:flowId/emails/:emailId/tags
+ * Update tags for a specific email
+ */
+router.put('/:flowId/emails/:emailId/tags', authenticate, async (req, res) => {
+  try {
+    const { flowId, emailId } = req.params;
+    const { tags } = req.body;
+
+    if (!Array.isArray(tags)) {
+      return res.status(400).json({ error: 'Tags must be an array' });
+    }
+
+    // Find the flow (verify ownership)
+    const flow = await prisma.flow.findFirst({
+      where: {
+        flowId: flowId,
+        userId: req.userId
+      }
+    });
+
+    if (!flow) {
+      return res.status(404).json({ error: 'Flow not found' });
+    }
+
+    // Update the email's tags
+    await prisma.email.updateMany({
+      where: {
+        flowId: flow.id,
+        emailId: emailId
+      },
+      data: {
+        userTags: tags
+      }
+    });
+
+    res.json({ message: 'Tags updated successfully', tags });
+
+  } catch (error) {
+    console.error('Error updating tags:', error);
+    res.status(500).json({ error: 'Failed to update tags' });
+  }
+});
+
+/**
  * GET /api/flows
  * Get all flows for the authenticated user from database
  */
