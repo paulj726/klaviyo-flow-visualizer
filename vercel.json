@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/flows.js": {
+      "maxDuration": 60
+    }
+  }
+}

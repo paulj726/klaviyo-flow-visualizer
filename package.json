@@ -1,0 +1,18 @@
+{
+  "name": "klaviyo-flow-visualizer",
+  "version": "1.0.0",
+  "description": "Visual dashboard for Klaviyo email flows",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.x"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "googleapis": "^163.0.0"
+  }
+}
