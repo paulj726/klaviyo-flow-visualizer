@@ -371,7 +371,7 @@
         }
 
         .modal-close {
-            position: absolute;
+            position: fixed;
             top: 1rem;
             right: 1rem;
             background: white;
@@ -386,6 +386,41 @@
             justify-content: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             z-index: 1001;
+        }
+
+        .modal-controls {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1001;
+        }
+
+        .modal-controls button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .modal-controls button:hover {
+            background: #5a67d8;
+        }
+
+        #modalImage {
+            transition: transform 0.2s ease;
+            transform-origin: center center;
         }
     </style>
 </head>
@@ -440,6 +475,11 @@
         <button class="modal-close" onclick="closeModal()">&times;</button>
         <div class="modal-content">
             <img id="modalImage" src="" alt="Email preview">
+        </div>
+        <div class="modal-controls">
+            <button onclick="zoomOut()">🔍− Zoom Out</button>
+            <button onclick="resetZoom()">↺ Reset</button>
+            <button onclick="zoomIn()">🔍+ Zoom In</button>
         </div>
     </div>
 

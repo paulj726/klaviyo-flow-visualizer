@@ -236,9 +236,7 @@ router.post('/refresh', authenticate, async (req, res) => {
       });
     }
 
-    const generateScreenshots = req.query.screenshots === 'true';
-    const isProduction = process.env.VERCEL === '1';
-
+    const generateScreenshots = true; // Always generate screenshots
     console.log(`[User ${req.userId}] Fetching flows from Klaviyo...`);
 
     // Fetch all flows from Klaviyo
@@ -273,9 +271,9 @@ router.post('/refresh', authenticate, async (req, res) => {
         const emailName = firstMessage?.attributes?.name || `Email ${j + 1}`;
         const messageId = firstMessage?.id;
 
-        // Optional: Generate screenshot
+        // Generate screenshot
         let screenshotUrl = null;
-        if (!isProduction && generateScreenshots && messageId && HCTI_USER_ID && HCTI_API_KEY) {
+        if (generateScreenshots && messageId && HCTI_USER_ID && HCTI_API_KEY) {
           await delay(400);
           const template = await fetchEmailTemplate(messageId, apiKey);
           if (template?.attributes?.html) {

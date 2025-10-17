@@ -99,8 +99,29 @@ async function fetchFlows() {
 async function refreshFlows() {
   if (isLoading) return;
 
+  // Check if user refreshed recently (within 60 minutes)
+  if (flowsData.metadata?.lastUpdated) {
+    const lastRefresh = new Date(flowsData.metadata.lastUpdated);
+    const now = new Date();
+    const minutesSinceRefresh = (now - lastRefresh) / (1000 * 60);
+
+    if (minutesSinceRefresh < 60) {
+      const minutesAgo = Math.floor(minutesSinceRefresh);
+      const confirmed = confirm(
+        `⚠️ You refreshed your data ${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago.\n\n` +
+        `Are you sure you want to refresh again?\n\n` +
+        `Note: Refreshing generates new screenshots for all emails, which can take several minutes.`
+      );
+      if (!confirmed) return;
+    }
+  }
+
   try {
     isLoading = true;
+
+    // Show loading overlay
+    showRefreshOverlay();
+
     const btn = document.getElementById('refreshBtn');
     btn.disabled = true;
     btn.innerHTML = '🔄 Refreshing...';
@@ -119,6 +140,7 @@ async function refreshFlows() {
     if (!response.ok) {
       if (response.status === 400 && data.error.includes('API key not configured')) {
         // Redirect to settings to configure API key
+        hideRefreshOverlay();
         if (confirm('You need to configure your Klaviyo API key first. Go to Settings now?')) {
           window.location.href = '/settings.html';
         }
@@ -139,6 +161,7 @@ async function refreshFlows() {
     showError(error.message);
   } finally {
     isLoading = false;
+    hideRefreshOverlay();
     const btn = document.getElementById('refreshBtn');
     btn.disabled = false;
     btn.innerHTML = '🔄 Refresh from Klaviyo';
@@ -176,6 +199,47 @@ function showLoading() {
 // Hide loading state
 function hideLoading() {
   // Will be replaced by renderFlows()
+}
+
+// Show refresh overlay
+function showRefreshOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'refreshOverlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+  overlay.innerHTML = `
+    <div style="background: white; padding: 3rem; border-radius: 12px; text-align: center; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+      <div style="font-size: 64px; margin-bottom: 1rem; animation: spin 2s linear infinite;">🔄</div>
+      <h2 style="color: #2d3748; margin-bottom: 0.5rem;">Refreshing from Klaviyo</h2>
+      <p style="color: #718096; margin-bottom: 0;">Fetching flows and generating email screenshots...</p>
+      <p style="color: #a0aec0; font-size: 0.875rem; margin-top: 1rem;">This may take a few minutes</p>
+    </div>
+    <style>
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// Hide refresh overlay
+function hideRefreshOverlay() {
+  const overlay = document.getElementById('refreshOverlay');
+  if (overlay) {
+    overlay.remove();
+  }
 }
 
 // Show error message
@@ -256,7 +320,7 @@ function renderEmails(emails, flowId) {
         <div class="email-number">${index + 1}</div>
         <div class="email-preview" onclick="showPreview('${email.screenshotUrl || ''}', '${escapeHtml(email.name)}')">
           ${email.screenshotUrl
-            ? `<img src="${email.screenshotUrl}" alt="${escapeHtml(email.name)}" style="width: 100%; height: 100%; object-fit: cover;">`
+            ? `<img src="${email.screenshotUrl}" alt="${escapeHtml(email.name)}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">`
             : `<div class="email-placeholder">
                 📧 Email Preview<br>
                 <small>(No screenshot available)</small>
@@ -349,16 +413,19 @@ function updateStats() {
 }
 
 // Show preview modal
+let currentZoom = 1;
 function showPreview(screenshotUrl, emailName) {
   if (!screenshotUrl) {
     alert('Screenshot not available for this email.\n\nScreenshots are generated when you refresh flows from Klaviyo.');
     return;
   }
 
+  currentZoom = 1; // Reset zoom
   const modal = document.getElementById('previewModal');
   const modalImage = document.getElementById('modalImage');
   modalImage.src = screenshotUrl;
   modalImage.alt = emailName;
+  modalImage.style.transform = `scale(${currentZoom})`;
   modal.classList.add('active');
 }
 
@@ -370,6 +437,33 @@ function closeModal() {
 }
 
 window.closeModal = closeModal;
+
+// Zoom in modal image
+function zoomIn() {
+  currentZoom = Math.min(currentZoom + 0.25, 3); // Max 3x zoom
+  const modalImage = document.getElementById('modalImage');
+  modalImage.style.transform = `scale(${currentZoom})`;
+}
+
+window.zoomIn = zoomIn;
+
+// Zoom out modal image
+function zoomOut() {
+  currentZoom = Math.max(currentZoom - 0.25, 0.5); // Min 0.5x zoom
+  const modalImage = document.getElementById('modalImage');
+  modalImage.style.transform = `scale(${currentZoom})`;
+}
+
+window.zoomOut = zoomOut;
+
+// Reset zoom
+function resetZoom() {
+  currentZoom = 1;
+  const modalImage = document.getElementById('modalImage');
+  modalImage.style.transform = `scale(${currentZoom})`;
+}
+
+window.resetZoom = resetZoom;
 
 // Add tag to email (now updates database via API)
 async function addTag(flowId, emailId) {
