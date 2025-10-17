@@ -1,0 +1,112 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String?  // null if OAuth only
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  settings      UserSettings?
+  flows         Flow[]
+  sessions      Session[]
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  klaviyoApiKey         String   // Encrypted with AES-256
+  lastRefresh           DateTime?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Flow {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  flowId            String   // Klaviyo flow ID (e.g., "U2DUPz")
+  name              String   // e.g., "[ACE] Abandoned Cart"
+  status            String   // "live", "draft", "paused"
+  type              String   // "welcome", "abandoned-cart", etc.
+  klaviyoUrl        String   // Direct link to Klaviyo editor
+
+  // Additional metadata from Klaviyo API
+  archived          Boolean  @default(false)
+  triggerType       String?  // "Metric", "Added to List", etc.
+  klaviyoCreatedAt  DateTime?
+  klaviyoUpdatedAt  DateTime?
+
+  // Store full Klaviyo JSON for future use
+  rawData           Json?    // Full API response
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  emails            Email[]
+
+  @@unique([userId, flowId])
+  @@index([userId, status])
+}
+
+model Email {
+  id                String   @id @default(cuid())
+  flowId            String
+  flow              Flow     @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  emailId           String   // Klaviyo action/message ID
+  name              String   // "BC Abandoned Cart ATC: Email 1"
+  delay             String   // "4 hours", "2 days", "Immediately"
+
+  // Additional metadata
+  templateId        String?  // Klaviyo template ID
+  subjectLine       String?  // "Your items are waiting."
+  messageStatus     String?  // "live", "draft"
+
+  // Screenshot data
+  screenshotUrl     String?
+  screenshotGeneratedAt DateTime?
+
+  // Metrics (separate fields for easy querying)
+  openRate          Float    @default(0)
+  clickRate         Float    @default(0)
+  conversionRate    Float    @default(0)
+
+  // User-managed tags (JSON array)
+  userTags          Json     @default("[]")
+
+  // Position in flow for ordering
+  position          Int      @default(0)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([flowId, emailId])
+  @@index([flowId, position])
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
