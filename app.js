@@ -489,54 +489,6 @@ function refreshFlows() {
     }
 }
 
-// Export to Google Sheets
-async function exportToSheets() {
-    if (isLoading) {
-        alert('Please wait for flows to finish loading before exporting.');
-        return;
-    }
-
-    const confirmed = confirm('This will create a new Google Sheet with all your flows and email screenshots. This may take 1-2 minutes. Continue?');
-    if (!confirmed) return;
-
-    try {
-        // Show loading message
-        const originalButton = event.target;
-        const originalText = originalButton.textContent;
-        originalButton.textContent = '⏳ Exporting...';
-        originalButton.disabled = true;
-
-        const response = await fetch('/api/export-to-sheets', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to export to Google Sheets');
-        }
-
-        // Success! Open the sheet
-        alert(`Success! Your Google Sheet has been created.\n\nOpening in a new tab...`);
-        window.open(data.spreadsheetUrl, '_blank');
-
-        // Reset button
-        originalButton.textContent = originalText;
-        originalButton.disabled = false;
-
-    } catch (error) {
-        console.error('Error exporting to Google Sheets:', error);
-        alert(`Error: ${error.message}\n\nPlease make sure Google Sheets API is configured correctly.`);
-
-        // Reset button
-        event.target.textContent = '📊 Export to Google Sheets';
-        event.target.disabled = false;
-    }
-}
-
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     init();
