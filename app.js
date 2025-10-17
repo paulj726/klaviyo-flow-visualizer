@@ -426,7 +426,16 @@ function showPreview(screenshotUrl, emailName) {
   modalImage.src = screenshotUrl;
   modalImage.alt = emailName;
   modalImage.style.transform = `scale(${currentZoom})`;
+  updateZoomIndicator();
   modal.classList.add('active');
+}
+
+// Update zoom level indicator
+function updateZoomIndicator() {
+  const indicator = document.getElementById('zoomLevel');
+  if (indicator) {
+    indicator.textContent = `${Math.round(currentZoom * 100)}%`;
+  }
 }
 
 window.showPreview = showPreview;
@@ -440,18 +449,38 @@ window.closeModal = closeModal;
 
 // Zoom in modal image
 function zoomIn() {
-  currentZoom = Math.min(currentZoom + 0.25, 3); // Max 3x zoom
+  const modalContent = document.querySelector('.modal-content');
+  const scrollTop = modalContent.scrollTop;
+  const scrollRatio = scrollTop / modalContent.scrollHeight;
+
+  currentZoom = Math.min(currentZoom + 0.5, 4); // Max 4x zoom, larger increments
   const modalImage = document.getElementById('modalImage');
   modalImage.style.transform = `scale(${currentZoom})`;
+  updateZoomIndicator();
+
+  // Maintain scroll position relative to zoom
+  setTimeout(() => {
+    modalContent.scrollTop = modalContent.scrollHeight * scrollRatio;
+  }, 50);
 }
 
 window.zoomIn = zoomIn;
 
 // Zoom out modal image
 function zoomOut() {
-  currentZoom = Math.max(currentZoom - 0.25, 0.5); // Min 0.5x zoom
+  const modalContent = document.querySelector('.modal-content');
+  const scrollTop = modalContent.scrollTop;
+  const scrollRatio = scrollTop / modalContent.scrollHeight;
+
+  currentZoom = Math.max(currentZoom - 0.5, 0.75); // Min 0.75x zoom, larger increments
   const modalImage = document.getElementById('modalImage');
   modalImage.style.transform = `scale(${currentZoom})`;
+  updateZoomIndicator();
+
+  // Maintain scroll position relative to zoom
+  setTimeout(() => {
+    modalContent.scrollTop = modalContent.scrollHeight * scrollRatio;
+  }, 50);
 }
 
 window.zoomOut = zoomOut;
@@ -461,6 +490,9 @@ function resetZoom() {
   currentZoom = 1;
   const modalImage = document.getElementById('modalImage');
   modalImage.style.transform = `scale(${currentZoom})`;
+  updateZoomIndicator();
+  const modalContent = document.querySelector('.modal-content');
+  modalContent.scrollTop = 0; // Scroll back to top
 }
 
 window.resetZoom = resetZoom;

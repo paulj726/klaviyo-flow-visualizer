@@ -363,11 +363,14 @@
 
         .modal-content {
             background: white;
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 90vw;
+            max-height: 90vh;
             overflow: auto;
             border-radius: 12px;
             position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
         }
 
         .modal-close {
@@ -395,8 +398,9 @@
             transform: translateX(-50%);
             display: flex;
             gap: 0.5rem;
+            align-items: center;
             background: white;
-            padding: 0.75rem;
+            padding: 0.75rem 1rem;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             z-index: 1001;
@@ -418,9 +422,22 @@
             background: #5a67d8;
         }
 
+        .zoom-indicator {
+            padding: 0 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #2d3748;
+            min-width: 60px;
+            text-align: center;
+        }
+
         #modalImage {
             transition: transform 0.2s ease;
-            transform-origin: center center;
+            transform-origin: top center;
+            max-width: none;
+            width: 600px;
+            height: auto;
+            display: block;
         }
     </style>
 </head>
@@ -477,9 +494,10 @@
             <img id="modalImage" src="" alt="Email preview">
         </div>
         <div class="modal-controls">
-            <button onclick="zoomOut()">🔍− Zoom Out</button>
-            <button onclick="resetZoom()">↺ Reset</button>
-            <button onclick="zoomIn()">🔍+ Zoom In</button>
+            <button onclick="zoomOut()">−</button>
+            <span class="zoom-indicator" id="zoomLevel">100%</span>
+            <button onclick="zoomIn()">+</button>
+            <button onclick="resetZoom()" style="margin-left: 0.5rem;">↺ Reset</button>
         </div>
     </div>
 
