@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Klaviyo Flow Visualizer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left h1 {
+      font-size: 24px;
+      color: #1a202c;
+      margin-bottom: 4px;
+    }
+
+    .header-left p {
+      color: #718096;
+      font-size: 14px;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .user-email {
+      color: #4a5568;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+
+    .btn-primary:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+    }
+
+    .settings-card {
+      background: white;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      margin-bottom: 24px;
+    }
+
+    .settings-card h2 {
+      font-size: 20px;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+
+    .settings-card p {
+      color: #718096;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #2d3748;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.2s;
+      font-family: 'Courier New', monospace;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 6px;
+      color: #718096;
+      font-size: 13px;
+    }
+
+    .form-group small a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .form-group small a:hover {
+      text-decoration: underline;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-error {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .alert-success {
+      background: #c6f6d5;
+      color: #2f855a;
+    }
+
+    .alert-info {
+      background: #bee3f8;
+      color: #2c5282;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .status-configured {
+      background: #c6f6d5;
+      color: #2f855a;
+    }
+
+    .status-not-configured {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .last-refresh {
+      color: #718096;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <h1>Settings</h1>
+        <p>Manage your account and API configuration</p>
+      </div>
+      <div class="header-right">
+        <span class="user-email" id="userEmail"></span>
+        <button class="btn btn-secondary" onclick="location.href='/'">
+          Back to Flows
+        </button>
+        <button class="btn btn-secondary" onclick="handleLogout()">
+          Sign Out
+        </button>
+      </div>
+    </header>
+
+    <div class="settings-card">
+      <h2>Klaviyo API Configuration</h2>
+      <p>Your API key is encrypted and stored securely. It's used to fetch your flow data from Klaviyo.</p>
+
+      <div id="statusBadge"></div>
+      <div id="lastRefresh" class="last-refresh"></div>
+
+      <div id="alertMessage" class="alert"></div>
+
+      <form id="settingsForm">
+        <div class="form-group">
+          <label for="klaviyoApiKey">Klaviyo Private API Key</label>
+          <input
+            type="password"
+            id="klaviyoApiKey"
+            name="klaviyoApiKey"
+            placeholder="pk_..."
+            autocomplete="off"
+          >
+          <small>
+            Get your API key from <a href="https://www.klaviyo.com/settings/account/api-keys" target="_blank" rel="noopener">Klaviyo Account Settings</a>.
+            You need a Private API Key with read permissions for flows.
+          </small>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="handleTestConnection()" id="testBtn">
+            Test Connection
+          </button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            Save API Key
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="settings-card">
+      <h2>Account Information</h2>
+      <p>Your account details</p>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="accountEmail" disabled>
+      </div>
+
+      <div class="form-group">
+        <label>Account Created</label>
+        <input type="text" id="accountCreated" disabled>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/+esm';
+
+    // Initialize Supabase client (we'll need to pass these from the server)
+    const supabaseUrl = window.SUPABASE_URL;
+    const supabaseAnonKey = window.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase configuration missing');
+      showAlert('Configuration error. Please contact support.', 'error');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    const form = document.getElementById('settingsForm');
+    const saveBtn = document.getElementById('saveBtn');
+    const testBtn = document.getElementById('testBtn');
+    const alertDiv = document.getElementById('alertMessage');
+    const statusBadge = document.getElementById('statusBadge');
+    const lastRefresh = document.getElementById('lastRefresh');
+
+    let currentUser = null;
+
+    function showAlert(message, type = 'info') {
+      alertDiv.textContent = message;
+      alertDiv.className = `alert alert-${type} show`;
+    }
+
+    function hideAlert() {
+      alertDiv.classList.remove('show');
+    }
+
+    function setLoading(button, loading, loadingText, normalText) {
+      if (loading) {
+        button.disabled = true;
+        button.innerHTML = `<span class="loading"></span>${loadingText}`;
+      } else {
+        button.disabled = false;
+        button.innerHTML = normalText;
+      }
+    }
+
+    async function loadUserSettings() {
+      try {
+        const response = await fetch('/api/settings', {
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load settings');
+        }
+
+        const data = await response.json();
+
+        if (data.hasApiKey) {
+          statusBadge.innerHTML = '<span class="status-badge status-configured">✓ API Key Configured</span>';
+          document.getElementById('klaviyoApiKey').placeholder = '••••••••••••••••';
+        } else {
+          statusBadge.innerHTML = '<span class="status-badge status-not-configured">⚠ API Key Not Configured</span>';
+        }
+
+        if (data.lastRefresh) {
+          const date = new Date(data.lastRefresh);
+          lastRefresh.textContent = `Last refresh: ${date.toLocaleString()}`;
+        } else {
+          lastRefresh.textContent = 'Never refreshed';
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        showAlert('Failed to load settings. Please refresh the page.', 'error');
+      }
+    }
+
+    async function handleTestConnection() {
+      const apiKey = document.getElementById('klaviyoApiKey').value;
+
+      if (!apiKey) {
+        showAlert('Please enter your Klaviyo API key first.', 'error');
+        return;
+      }
+
+      hideAlert();
+      setLoading(testBtn, true, 'Testing...', 'Test Connection');
+
+      try {
+        const response = await fetch('/api/settings/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({ klaviyoApiKey: apiKey })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Connection test failed');
+        }
+
+        showAlert('✓ Connection successful! API key is valid.', 'success');
+      } catch (error) {
+        console.error('Test connection error:', error);
+        showAlert(error.message || 'Failed to connect to Klaviyo. Please check your API key.', 'error');
+      } finally {
+        setLoading(testBtn, false, 'Testing...', 'Test Connection');
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert();
+
+      const apiKey = document.getElementById('klaviyoApiKey').value;
+
+      if (!apiKey) {
+        showAlert('Please enter your Klaviyo API key.', 'error');
+        return;
+      }
+
+      setLoading(saveBtn, true, 'Saving...', 'Save API Key');
+
+      try {
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify({ klaviyoApiKey: apiKey })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to save API key');
+        }
+
+        showAlert('✓ API key saved successfully! You can now fetch your flows.', 'success');
+        document.getElementById('klaviyoApiKey').value = '';
+        await loadUserSettings();
+      } catch (error) {
+        console.error('Save error:', error);
+        showAlert(error.message || 'Failed to save API key. Please try again.', 'error');
+      } finally {
+        setLoading(saveBtn, false, 'Saving...', 'Save API Key');
+      }
+    });
+
+    window.handleTestConnection = handleTestConnection;
+
+    window.handleLogout = async () => {
+      try {
+        await supabase.auth.signOut();
+        window.location.href = '/login.html';
+      } catch (error) {
+        console.error('Logout error:', error);
+        showAlert('Failed to sign out. Please try again.', 'error');
+      }
+    };
+
+    // Check authentication and load user data
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      currentUser = session.user;
+
+      // Display user info
+      document.getElementById('userEmail').textContent = currentUser.email;
+      document.getElementById('accountEmail').value = currentUser.email;
+      document.getElementById('accountCreated').value = new Date(currentUser.created_at).toLocaleDateString();
+
+      // Load settings
+      await loadUserSettings();
+    })();
+  </script>
+</body>
+</html>
