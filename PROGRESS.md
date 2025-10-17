@@ -39,47 +39,86 @@
 
 ---
 
+## ✅ Phase 2 Complete: Authentication & Pages
+
+1. **✅ Login Page**
+   - Email/password form with Supabase Auth
+   - Error handling and loading states
+   - Auto-redirect if authenticated
+
+2. **✅ Register Page**
+   - User registration with password validation
+   - Password strength requirements (8+ chars, upper, lower, number)
+   - Email confirmation support
+
+3. **✅ Settings Page**
+   - Klaviyo API key management
+   - Test connection functionality
+   - Last refresh timestamp display
+
+4. **✅ Auth Helper Functions**
+   - `public/auth-helpers.js` with complete auth utilities
+   - Session management, password validation, error messages
+
+---
+
+## ✅ Phase 3 Complete: Server Updates
+
+1. **✅ Authentication Middleware**
+   - `middleware/auth.js` - JWT verification via Supabase
+   - Bearer token authentication
+   - User attached to all protected requests
+
+2. **✅ Config Injection Middleware**
+   - `middleware/inject-config.js` - Injects Supabase config into HTML
+   - No hardcoded credentials in frontend
+
+3. **✅ Auth API Endpoints**
+   - POST `/api/auth/register` - User registration
+   - POST `/api/auth/login` - Email/password login
+   - POST `/api/auth/logout` - Session termination
+   - GET `/api/auth/session` - Session check
+   - GET `/api/auth/me` - User profile
+
+4. **✅ Settings API Endpoints**
+   - GET `/api/settings` - Check API key status
+   - POST `/api/settings` - Save encrypted API key
+   - POST `/api/settings/test` - Validate Klaviyo key
+   - DELETE `/api/settings` - Remove API key
+
+5. **✅ Flows API Endpoints**
+   - GET `/api/flows` - Fetch user's flows from database
+   - POST `/api/flows/refresh` - Sync from Klaviyo to database
+   - Preserves user tags during refresh
+   - Rate-limited API calls
+
+6. **✅ Server Simplification**
+   - server.js reduced from 363 to 53 lines
+   - All logic moved to route modules
+   - Clean, maintainable architecture
+
+---
+
 ## 🔄 In Progress
 
-### Phase 2: Authentication & Pages
+### Phase 4: Frontend Updates
 
-**Current Task:** Creating authentication pages
+**Current Task:** Update app.js and index.html for multi-user
 
 **Remaining Work:**
-- [ ] Create login page (`/login.html`)
-- [ ] Create register page (`/register.html`)
-- [ ] Create settings page (`/settings.html`)
-- [ ] Add logout functionality
-- [ ] Create auth helper functions
+- [ ] Add authentication check on page load
+- [ ] Update header with user info and logout button
+- [ ] Add redirect to login if not authenticated
+- [ ] Update refresh button to call `/api/flows/refresh`
+- [ ] Show last refresh timestamp from database
+- [ ] Add loading states for all operations
+- [ ] Update tag saving to use API instead of localStorage
 
 ---
 
 ## 📋 Pending Tasks
 
-### Phase 3: Server Updates
-- [ ] Add authentication middleware to Express
-- [ ] Create `/api/auth/register` endpoint
-- [ ] Create `/api/auth/login` endpoint
-- [ ] Create `/api/auth/logout` endpoint
-- [ ] Create `/api/auth/session` endpoint
-- [ ] Protect existing `/api/flows` endpoint
-- [ ] Create `/api/settings` endpoint (save Klaviyo API key)
-
-### Phase 4: Data Layer Migration
-- [ ] Update `/api/flows` to read from database
-- [ ] Create `/api/refresh` endpoint (fetch from Klaviyo, update DB)
-- [ ] Implement upsert logic for flows/emails
-- [ ] Preserve user tags during refresh
-- [ ] Handle screenshot generation and caching
-
-### Phase 5: Frontend Updates
-- [ ] Update header with user info and logout button
-- [ ] Add login redirect if not authenticated
-- [ ] Update refresh button to call new `/api/refresh` endpoint
-- [ ] Show last refresh timestamp from database
-- [ ] Add loading states for all operations
-
-### Phase 6: Testing & Deployment
+### Phase 5: Testing & Deployment
 - [ ] Test registration flow
 - [ ] Test login/logout flow
 - [ ] Test API key save and validation
@@ -166,16 +205,15 @@ To continue implementation:
 
 ## 📊 Progress Summary
 
-**Overall Progress:** 35% Complete
+**Overall Progress:** 75% Complete
 
 - ✅ Phase 1: Infrastructure (100%)
-- 🔄 Phase 2: Authentication (20%)
-- ⏳ Phase 3: Server Updates (0%)
-- ⏳ Phase 4: Data Migration (0%)
-- ⏳ Phase 5: Frontend Updates (0%)
-- ⏳ Phase 6: Testing & Deployment (0%)
+- ✅ Phase 2: Authentication Pages (100%)
+- ✅ Phase 3: Server & Database (100%)
+- 🔄 Phase 4: Frontend Updates (0%)
+- ⏳ Phase 5: Testing & Deployment (0%)
 
-**Estimated Time Remaining:** 4-6 hours of focused development
+**Estimated Time Remaining:** 1-2 hours of focused development
 
 ---
 
