@@ -73,12 +73,16 @@ model Email {
   name              String   // "BC Abandoned Cart ATC: Email 1"
   delay             String   // "4 hours", "2 days", "Immediately"
 
+  // Message type: "email" or "sms"
+  messageType       String   @default("email")
+  messageBody       String?  // For SMS content
+
   // Additional metadata
   templateId        String?  // Klaviyo template ID
   subjectLine       String?  // "Your items are waiting."
   messageStatus     String?  // "live", "draft"
 
-  // Screenshot data
+  // Screenshot data (nullable for SMS messages)
   screenshotUrl     String?
   screenshotGeneratedAt DateTime?
 

@@ -186,6 +186,8 @@ router.get('/', authenticate, async (req, res) => {
         id: email.emailId,
         name: email.name,
         delay: email.delay,
+        messageType: email.messageType || 'email',
+        messageBody: email.messageBody,
         screenshotUrl: email.screenshotUrl,
         tags: email.userTags, // JSON field
         metrics: {
@@ -256,44 +258,59 @@ router.post('/refresh', authenticate, async (req, res) => {
       if (i > 0) await delay(400); // Rate limiting
 
       const actions = await fetchFlowActions(flow.id, apiKey);
-      const emailActions = actions.filter(a => a.attributes?.action_type === 'SEND_EMAIL');
 
-      // Process emails for this flow
+      // Process both email and SMS actions
+      const messageActions = actions.filter(a =>
+        a.attributes?.action_type === 'SEND_EMAIL' ||
+        a.attributes?.action_type === 'send-sms'
+      );
+
+      // Process messages for this flow
       const processedEmails = [];
 
-      for (let j = 0; j < emailActions.length; j++) {
-        const action = emailActions[j];
+      for (let j = 0; j < messageActions.length; j++) {
+        const action = messageActions[j];
+        const actionType = action.attributes?.action_type;
+        const isSMS = actionType === 'send-sms';
 
         if (j > 0) await delay(400);
 
         const messages = await fetchFlowMessages(action.id, apiKey);
         const firstMessage = messages[0];
-        const emailName = firstMessage?.attributes?.name || `Email ${j + 1}`;
+        const messageName = firstMessage?.attributes?.name || `${isSMS ? 'SMS' : 'Email'} ${j + 1}`;
         const messageId = firstMessage?.id;
 
-        // Generate screenshot
+        // For SMS, extract message body from the first message
+        let messageBody = null;
+        if (isSMS && firstMessage?.attributes?.body) {
+          messageBody = firstMessage.attributes.body;
+        }
+
+        // Generate screenshot only for emails
         let screenshotUrl = null;
-        if (generateScreenshots && messageId && HCTI_USER_ID && HCTI_API_KEY) {
+        if (!isSMS && generateScreenshots && messageId && HCTI_USER_ID && HCTI_API_KEY) {
           await delay(400);
           const template = await fetchEmailTemplate(messageId, apiKey);
           if (template?.attributes?.html) {
             screenshotUrl = await generateScreenshot(template.attributes.html);
             if (screenshotUrl) {
-              console.log(`  Generated screenshot for: ${emailName}`);
+              console.log(`  Generated screenshot for: ${messageName}`);
             }
           }
         }
 
-        const emailDelay = action.attributes?.settings?.delay ||
+        const messageDelay = action.attributes?.settings?.delay ||
           action.attributes?.settings?.time_delay ||
           'Immediately';
 
         processedEmails.push({
           emailId: action.id,
-          name: emailName,
-          delay: emailDelay,
+          name: messageName,
+          delay: messageDelay,
+          messageType: isSMS ? 'sms' : 'email',
+          messageBody: messageBody,
           templateId: messageId,
-          subjectLine: firstMessage?.attributes?.subject || null,
+          subjectLine: !isSMS ? (firstMessage?.attributes?.subject || null) : null,
           messageStatus: action.attributes?.status || null,
           screenshotUrl,
           position: j

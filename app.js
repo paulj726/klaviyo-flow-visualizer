@@ -328,44 +328,88 @@ function renderFlows() {
 function renderEmails(emails, flowId) {
   let html = '';
   emails.forEach((email, index) => {
-    html += `
-      <div class="email-card" data-email-id="${email.id}" data-flow-id="${flowId}">
-        <div class="email-number">${index + 1}</div>
-        <div class="email-preview" onclick="showPreview('${email.screenshotUrl || ''}', '${escapeHtml(email.name)}')">
-          ${email.screenshotUrl
-            ? `<img src="${email.screenshotUrl}" alt="${escapeHtml(email.name)}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">`
-            : `<div class="email-placeholder">
-                📧 Email Preview<br>
-                <small>(No screenshot available)</small>
-              </div>`
-          }
-        </div>
-        <div class="email-info">
-          <div class="email-name">${escapeHtml(email.name)}</div>
-          <div class="email-delay">⏱️ ${email.delay}</div>
-        </div>
-        <div class="email-tags">
-          ${email.tags.map(tag => `
-            <span class="tag ${tag}" onclick="filterByTag('${tag}')" title="Click to filter">${tag}</span>
-          `).join('')}
-          <button class="add-tag" onclick="addTag('${flowId}', '${email.id}')">+ Add Tag</button>
-        </div>
-        <div class="email-metrics">
-          <div class="metric">
-            <div class="metric-value">${email.metrics.openRate.toFixed(1)}%</div>
-            <div class="metric-label">Open</div>
+    const isSMS = email.messageType === 'sms';
+
+    if (isSMS) {
+      // Render SMS card
+      html += `
+        <div class="email-card sms-card" data-email-id="${email.id}" data-flow-id="${flowId}">
+          <div class="email-number" style="background: #48bb78;">${index + 1}</div>
+          <div class="sms-preview">
+            <div class="sms-icon">💬</div>
+            <div class="sms-label">SMS Message</div>
+            ${email.messageBody
+              ? `<div class="sms-body">${escapeHtml(email.messageBody)}</div>`
+              : `<div class="sms-placeholder">SMS content</div>`
+            }
           </div>
-          <div class="metric">
-            <div class="metric-value">${email.metrics.clickRate.toFixed(1)}%</div>
-            <div class="metric-label">Click</div>
+          <div class="email-info">
+            <div class="email-name">${escapeHtml(email.name)}</div>
+            <div class="email-delay">⏱️ ${email.delay}</div>
           </div>
-          <div class="metric">
-            <div class="metric-value">${email.metrics.conversionRate.toFixed(1)}%</div>
-            <div class="metric-label">Conv</div>
+          <div class="email-tags">
+            ${email.tags.map(tag => `
+              <span class="tag ${tag}" onclick="filterByTag('${tag}')" title="Click to filter">${tag}</span>
+            `).join('')}
+            <button class="add-tag" onclick="addTag('${flowId}', '${email.id}')">+ Add Tag</button>
+          </div>
+          <div class="email-metrics">
+            <div class="metric">
+              <div class="metric-value">${email.metrics.openRate.toFixed(1)}%</div>
+              <div class="metric-label">Delivered</div>
+            </div>
+            <div class="metric">
+              <div class="metric-value">${email.metrics.clickRate.toFixed(1)}%</div>
+              <div class="metric-label">Click</div>
+            </div>
+            <div class="metric">
+              <div class="metric-value">${email.metrics.conversionRate.toFixed(1)}%</div>
+              <div class="metric-label">Conv</div>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      // Render email card
+      html += `
+        <div class="email-card" data-email-id="${email.id}" data-flow-id="${flowId}">
+          <div class="email-number">${index + 1}</div>
+          <div class="email-preview" onclick="showPreview('${email.screenshotUrl || ''}', '${escapeHtml(email.name)}')">
+            ${email.screenshotUrl
+              ? `<img src="${email.screenshotUrl}" alt="${escapeHtml(email.name)}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">`
+              : `<div class="email-placeholder">
+                  📧 Email Preview<br>
+                  <small>(No screenshot available)</small>
+                </div>`
+            }
+          </div>
+          <div class="email-info">
+            <div class="email-name">${escapeHtml(email.name)}</div>
+            <div class="email-delay">⏱️ ${email.delay}</div>
+          </div>
+          <div class="email-tags">
+            ${email.tags.map(tag => `
+              <span class="tag ${tag}" onclick="filterByTag('${tag}')" title="Click to filter">${tag}</span>
+            `).join('')}
+            <button class="add-tag" onclick="addTag('${flowId}', '${email.id}')">+ Add Tag</button>
+          </div>
+          <div class="email-metrics">
+            <div class="metric">
+              <div class="metric-value">${email.metrics.openRate.toFixed(1)}%</div>
+              <div class="metric-label">Open</div>
+            </div>
+            <div class="metric">
+              <div class="metric-value">${email.metrics.clickRate.toFixed(1)}%</div>
+              <div class="metric-label">Click</div>
+            </div>
+            <div class="metric">
+              <div class="metric-value">${email.metrics.conversionRate.toFixed(1)}%</div>
+              <div class="metric-label">Conv</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     if (index < emails.length - 1) {
       html += '<div class="arrow-connector">→</div>';
