@@ -1,4 +1,8 @@
 #!/bin/bash
-echo "🚀 Starting Klaviyo Flow Visualizer..."
-echo ""
-node server.js
+set -e
+
+echo "Running database migrations..."
+npx prisma migrate deploy
+
+echo "Starting server..."
+exec node server.js
