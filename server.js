@@ -16,6 +16,11 @@ const injectConfig = require('./middleware/inject-config');
 app.use(cors());
 app.use(express.json());
 
+// Mount API routes FIRST (before static files)
+app.use('/api/auth', authRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/flows', flowsRoutes);
+
 // Apply config injection for HTML files
 app.use(injectConfig());
 
@@ -24,11 +29,6 @@ app.use(express.static(__dirname, {
   index: false, // Don't serve index.html automatically
   extensions: ['js', 'css', 'png', 'jpg', 'jpeg', 'gif', 'svg']
 }));
-
-// Mount API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/flows', flowsRoutes);
 
 // Serve the main page (config injection handled by middleware)
 app.get('/', (req, res) => {

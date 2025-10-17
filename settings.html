@@ -320,6 +320,7 @@
     const lastRefresh = document.getElementById('lastRefresh');
 
     let currentUser = null;
+    let authToken = null;
 
     function showAlert(message, type = 'info') {
       alertDiv.textContent = message;
@@ -343,6 +344,10 @@
     async function loadUserSettings() {
       try {
         const response = await fetch('/api/settings', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
           credentials: 'include'
         });
 
@@ -386,6 +391,7 @@
         const response = await fetch('/api/settings/test', {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           },
           credentials: 'include',
@@ -424,6 +430,7 @@
         const response = await fetch('/api/settings', {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json'
           },
           credentials: 'include',
@@ -469,6 +476,7 @@
       }
 
       currentUser = session.user;
+      authToken = session.access_token;
 
       // Display user info
       document.getElementById('userEmail').textContent = currentUser.email;
