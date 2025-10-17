@@ -23,8 +23,14 @@ async function init() {
     const { data: { session }, error } = await supabase.auth.getSession();
 
     if (error || !session) {
-      // Not authenticated - redirect to login
-      window.location.href = '/login.html';
+      // Clear any stale session data
+      await supabase.auth.signOut();
+
+      // Not authenticated - redirect to login (but avoid redirect loop)
+      if (!window.location.pathname.includes('login.html') &&
+          !window.location.pathname.includes('register.html')) {
+        window.location.href = '/login.html';
+      }
       return;
     }
 
@@ -35,8 +41,14 @@ async function init() {
     // Display user info
     document.getElementById('userEmail').textContent = currentUser.email;
 
-    // Load flows from database
-    await fetchFlows();
+    // Load flows from database (this will also validate the session)
+    const success = await fetchFlows();
+
+    if (!success) {
+      // fetchFlows already handles 401 errors and redirects
+      return;
+    }
+
     renderFlows();
     updateStats();
     setupFilterListeners();
@@ -65,9 +77,10 @@ async function fetchFlows() {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Token expired - redirect to login
+        // Token expired - clear session and redirect to login
+        await supabase.auth.signOut();
         window.location.href = '/login.html';
-        return;
+        return false;
       }
       throw new Error(data.error || 'Failed to fetch flows');
     }
