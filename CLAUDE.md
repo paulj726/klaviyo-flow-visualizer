@@ -4,143 +4,305 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Klaviyo Flow Visualizer is a web-based dashboard that provides horizontal visualization of Klaviyo email flows. It's a lightweight Express.js server that serves a single-page application displaying email flow data with filtering and tagging capabilities.
+Klaviyo Flow Visualizer is a **multi-user** web application that provides horizontal visualization of Klaviyo email and SMS flows. It features secure authentication, encrypted API key storage, and real-time synchronization with Klaviyo.
 
-## Development Commands
+## Key Commands
 
 ```bash
-# Start the development server
+# Start development server
 npm start
+
+# Run with migrations (production)
+bash start.sh
+
+# Run database migrations
+npx prisma migrate deploy
+
+# Generate Prisma client
+npx prisma generate
 
 # Server runs on http://localhost:3000
 ```
 
-## Architecture
+## Architecture Overview
 
-### Application Structure
+### Technology Stack
 
-This is a simple three-layer application:
+- **Backend**: Node.js + Express (server.js - 52 lines)
+- **Frontend**: Vanilla JavaScript (app.js - 626 lines) + HTML (index.html - 567 lines)
+- **Database**: PostgreSQL via Prisma ORM
+- **Authentication**: Supabase Auth with JWT
+- **Encryption**: AES-256-CBC for API keys
+- **Screenshots**: HCTI.io API (optional)
+- **Deployment**: Railway with automatic migrations
 
-1. **Backend (server.js)**: Minimal Express server that:
-   - Serves static files (index.html, app.js)
-   - Provides CORS support
-   - Contains a stub `/api/flows` endpoint for future Klaviyo API integration
+### Application Layers
 
-2. **Frontend (index.html)**: Single-page HTML with:
-   - All CSS defined inline in `<style>` tags
-   - Responsive horizontal flow layout
-   - Sticky header with stats
-   - Tag-based filtering system
-   - Modal for email previews (not yet implemented)
+1. **Backend (server.js)**:
+   - Mounts API routes at `/api/auth`, `/api/settings`, `/api/flows` (lines 19-22)
+   - Applies config injection middleware for HTML pages (line 25)
+   - Serves static files and HTML with injected Supabase config (lines 28-36)
 
-3. **Frontend Logic (app.js)**: Vanilla JavaScript that:
-   - Manages in-memory flow data (currently hardcoded sample data)
-   - Implements filtering by tags
-   - Handles localStorage persistence for user-added tags
-   - Renders flows dynamically using template strings
+2. **Database Layer (Prisma)**:
+   - User model with authentication data
+   - UserSettings with encrypted API keys
+   - Flow and Email models for Klaviyo data
+   - Session model for auth management
 
-### Data Model
+3. **Frontend (app.js + HTML)**:
+   - Supabase client initialization (lines 8-21)
+   - Auth state management (lines 24-59)
+   - Flow rendering with horizontal layout
+   - Tag management with database persistence
 
-The core data structure is `flowsData` in app.js, which contains an array of flow objects:
+## Core Features Implementation
 
+### 1. Multi-User Authentication ✅
+
+**Implementation**:
+- **Supabase Integration**: `lib/supabase.js` creates client
+- **Config Injection**: `middleware/inject-config.js:35-41` injects SUPABASE_URL and ANON_KEY into HTML
+- **Auth Middleware**: `middleware/auth.js:13-55` validates JWT tokens
+- **Protected Routes**: All API endpoints require authentication via `authenticate()` middleware
+
+**Key Files**:
+- `routes/auth.js`: Register, login, logout, session endpoints
+- `middleware/auth.js`: JWT validation and user attachment to requests
+- `app.js:24-59`: Frontend auth state management
+
+### 2. SMS Support ✅
+
+**Backend Processing** (`routes/flows.js`):
 ```javascript
-{
-  flows: [
-    {
-      id: string,           // Klaviyo flow ID
-      name: string,         // Display name
-      status: "live",       // Current status
-      type: string,         // Flow type (welcome, abandoned-cart, etc.)
-      klaviyoUrl: string,   // Direct link to Klaviyo editor
-      emails: [
-        {
-          id: string,
-          name: string,
-          delay: string,
-          tags: string[],   // User-managed tags
-          metrics: {
-            openRate: number,
-            clickRate: number,
-            conversionRate: number
-          }
-        }
-      ]
-    }
-  ]
+// Line 265: Detect SMS actions
+a.attributes?.action_type === 'send-sms'
+
+// Line 286: Extract SMS body
+messageBody = firstMessage.attributes.body;
+
+// Line 310-311: Store SMS data
+messageType: isSMS ? 'sms' : 'email',
+messageBody: messageBody
+```
+
+**Frontend Rendering** (`app.js:331-371`):
+- Checks `messageType === 'sms'`
+- Renders green-themed SMS card with phone icon
+- Displays message body in chat bubble style
+
+**Styling** (`index.html:260-318`):
+- `.sms-card`: Green border and background
+- `.sms-preview`: Message bubble layout
+
+### 3. Database Persistence ✅
+
+**Schema** (`prisma/schema.prisma`):
+```prisma
+model Email {
+  messageType       String   @default("email")  // "email" or "sms"
+  messageBody       String?  // SMS content
+  userTags          Json     @default("[]")  // User-managed tags
+  screenshotUrl     String?  // Email preview URL
+  // ... metrics, position, etc.
 }
 ```
 
-### Key Design Decisions
+**Migrations**:
+- `20250117_add_sms_support`: Initial SMS support
+- `20251019225758_add_message_type_and_body`: Added missing columns (our fix)
 
-**State Management**: Data is stored in a global `flowsData` object and persisted to localStorage when tags are modified. On page load, localStorage data overrides hardcoded sample data.
+### 4. API Key Encryption ✅
 
-**Filtering Logic**: When a tag filter is active, the app filters each flow's emails array and only shows flows that have at least one email matching the filter. The "all" filter shows everything.
+**Implementation** (`utils/encryption.js`):
+- `encrypt()` (lines 8-28): AES-256-CBC with SHA-256 hashed key
+- `decrypt()` (lines 33-59): Reverses encryption
+- Format: `iv:encrypted` (hex encoded)
 
-**Tag System**: Tags are user-managed strings. Available tags are defined in `availableTags` array but not enforced. Users can add any tag via prompt dialog.
+**Usage**:
+- `routes/settings.js:76`: Encrypts before storing
+- `routes/settings.js:164`: Decrypts when retrieving
 
-**Rendering**: The entire flows container is re-rendered on every state change using template strings. No virtual DOM or diffing.
+### 5. Screenshot Generation ✅
 
-## Future Integration Points
+**HCTI Integration** (`routes/flows.js:67-98`):
+- Calls HCTI.io API with HTML content
+- Returns null if env vars missing (graceful degradation)
+- Only for emails, skipped for SMS (line 291)
 
-### Klaviyo API Integration
+### 6. Flow Data Management ✅
 
-The `/api/flows` endpoint in server.js is a placeholder. To connect to real Klaviyo data:
+**GET /api/flows** (`routes/flows.js:158-224`):
+- Fetches from DATABASE (not Klaviyo directly)
+- Includes nested emails ordered by position
+- Returns messageType and messageBody for SMS
 
-1. Add Klaviyo API key to environment variable
-2. Implement Klaviyo API calls in server.js
-3. Update app.js to fetch from `/api/flows` instead of using hardcoded data
-4. Map Klaviyo's flow/email structure to the local data model
+**POST /api/flows/refresh** (`routes/flows.js:230-424`):
+- Fetches live flows from Klaviyo
+- Processes both email and SMS messages
+- Generates screenshots for emails
+- Rate-limited with 400ms delay between API calls
+- Preserves user tags during refresh
 
-Key Klaviyo APIs needed:
-- List flows
-- Get flow details
-- Get email metrics
+## Environment Variables
 
-### Email Screenshot Generation
+### Required
+```bash
+DATABASE_URL            # Direct connection (port 5432) for migrations
+DATABASE_URL_POOLED     # Pooled connection (port 6543) for runtime
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENCRYPTION_KEY          # 32-byte hex string
+```
 
-The email preview functionality (`.email-preview` divs) currently shows placeholders. To add real previews:
+### Optional
+```bash
+HCTI_USER_ID           # For screenshot generation
+HCTI_API_KEY           # For screenshot generation
+PORT                   # Defaults to 3000
+```
 
-1. Generate screenshots of email templates (server-side using Puppeteer or similar)
-2. Store screenshots as files or URLs
-3. Add `previewUrl` field to email objects
-4. Update `renderEmails()` to use `<img>` tags instead of placeholders
+## Current Limitations
+
+1. **Metrics**: Shows placeholder values (0%) - not fetching from Klaviyo API
+2. **Screenshots**: Requires HCTI API subscription
+3. **Migration Baseline**: Hardcoded in `start.sh:18-19`
+4. **Error Handling**: Screenshot failures are silent
+5. **Search**: No full-text search implemented
+6. **Export**: Cannot export visualizations
+
+## Deployment Notes
+
+### Railway Deployment
+- Uses `start.sh` for automatic migrations
+- Handles P3005 error by baselining existing migrations
+- 120-second timeout on migrations to prevent hanging
+- DATABASE_URL must use port 5432 for migrations
+
+### Migration Error Handling (`start.sh`)
+```bash
+# Timeout (exit code 124): Continue anyway
+# P3005 error (exit code 1): Baseline and retry
+# Other errors: Exit with error
+```
+
+## Key Design Decisions
+
+**Why Database over localStorage**: Multi-user support requires persistent, isolated storage
+
+**Why Supabase Auth**: Provides secure, managed authentication without custom implementation
+
+**Why AES-256 Encryption**: Industry standard for sensitive data like API keys
+
+**Why Horizontal Layout**: Better visualization of email flow progression
+
+**Why Rate Limiting**: Respects Klaviyo API limits and prevents abuse
+
+**Why Config Injection**: Allows environment-based configuration without hardcoding
+
+## API Endpoints
+
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/auth/register` | POST | No | User registration |
+| `/api/auth/login` | POST | No | User login |
+| `/api/auth/logout` | POST | Yes | User logout |
+| `/api/auth/session` | GET | Optional | Get current session |
+| `/api/settings` | GET/POST/DELETE | Yes | Manage API keys |
+| `/api/flows` | GET | Yes | Get user's flows |
+| `/api/flows/refresh` | POST | Yes | Sync with Klaviyo |
+| `/api/flows/:flowId/emails/:emailId/tags` | PUT | Yes | Update tags |
 
 ## File Organization
 
-- `server.js` - Express server (43 lines)
-- `app.js` - Frontend JavaScript logic (365 lines)
-- `index.html` - HTML + inline CSS (435 lines)
-- `flows-data.json` - Empty placeholder for future API data persistence
-- `package.json` - Dependencies: express, cors
+```
+routes/
+├── auth.js         # Authentication endpoints
+├── flows.js        # Flow data management (427 lines)
+└── settings.js     # User settings and API keys
 
-## UI Components
+middleware/
+├── auth.js         # JWT authentication
+└── inject-config.js # Supabase config injection
 
-**Header**: Displays live flow count, total email count, last updated timestamp
+utils/
+└── encryption.js   # AES-256 encryption utilities
 
-**Filters Bar**: Horizontal list of tag buttons. Active filter gets purple background.
+lib/
+└── supabase.js    # Supabase client singleton
 
-**Flow Row**: Each flow is a card containing:
-- Flow header with title, status badge, type, edit link, collapse button
-- Horizontal scrollable email container
-- Arrow connectors between emails
+prisma/
+├── schema.prisma   # Database schema
+└── migrations/     # Database migrations
+```
 
-**Email Card**: 350px wide card showing:
-- Numbered badge
-- Email preview area (400px height)
-- Email name and delay
-- Tags (clickable to filter, plus add tag button)
-- Performance metrics (open/click/conversion rates)
+## Testing & Debugging
 
-## Color Scheme
+### Common Issues
 
-- Primary action: `#667eea` (purple-blue)
-- Live status: `#c6f6d5` (green)
-- Background: `#f5f7fa` (light gray)
-- Cards: white with `#e2e8f0` borders
-- Tag colors vary by type (discount=red, loyalty=yellow, social-proof=purple, urgency=pink)
+1. **"Column doesn't exist"**: Run `npx prisma migrate deploy`
+2. **"Authentication failed"**: Check Supabase keys in env
+3. **"No screenshots"**: Verify HCTI_USER_ID and HCTI_API_KEY
+4. **"Migration failed"**: Ensure DATABASE_URL uses port 5432
 
-## State Persistence
+### Debug Commands
 
-Tags added by users are saved to localStorage under the key `klaviyoFlowsData`. On page load, `loadData()` checks for saved data and merges it with the initial data structure.
+```bash
+# Check database schema
+npx prisma db pull
 
-**Note**: This means tag changes persist across sessions, but the underlying flow/email data still comes from the hardcoded sample data in app.js.
+# Generate Prisma client
+npx prisma generate
+
+# Create new migration
+npx prisma migrate dev --name migration_name
+
+# Reset database (CAUTION: deletes all data)
+npx prisma migrate reset
+```
+
+## Code Style Guidelines
+
+- **Async/Await**: Preferred over callbacks
+- **Error Handling**: Always use try/catch blocks
+- **Logging**: Use console.error for errors, console.log for info
+- **Comments**: Document complex logic and API calls
+- **Security**: Never expose sensitive data in responses
+- **Validation**: Validate all user inputs
+
+## Future Improvements (TODO)
+
+1. Implement real metrics from Klaviyo Reporting API
+2. Add health check endpoint (`GET /health`)
+3. Implement rate limiting middleware
+4. Add user notification for screenshot failures
+5. Make migration baseline more generic
+6. Add export functionality
+7. Implement search feature
+8. Add bulk tag operations
+9. Create admin panel for user management
+10. Add production logging (not just console)
+
+## Security Best Practices
+
+- Always use `authenticate()` middleware for protected routes
+- Encrypt sensitive data before storage
+- Use parameterized queries (handled by Prisma)
+- Validate and sanitize user inputs
+- Never expose internal errors to users
+- Use HTTPS in production
+- Implement rate limiting
+- Regular security audits
+
+## Performance Optimizations
+
+- Database queries include only needed fields
+- Emails ordered by position in single query
+- Rate limiting prevents API abuse
+- Config injection caches HTML modifications
+- Prisma connection pooling for efficiency
+
+---
+
+**Last Updated**: October 2025
+**Version**: 2.0.0 (Multi-User)
+**Status**: Production Ready with noted limitations
