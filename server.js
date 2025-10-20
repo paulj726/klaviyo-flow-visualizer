@@ -2,8 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
-const app = express();
+// Configure rate limiter: limit each IP to 100 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false,  // Disable the `X-RateLimit-*` headers
+});
 const PORT = process.env.PORT || 3000;
 const KLAVIYO_API_KEY = process.env.KLAVIYO_API_KEY;
 const HCTI_USER_ID = process.env.HCTI_USER_ID;
@@ -15,7 +22,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // Serve the main page
-app.get('/', (req, res) => {
+app.get('/', limiter, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
