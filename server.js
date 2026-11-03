@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const { KLAVIYO_REVISION, fetchAllPages } = require('./lib/klaviyoApi');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 
@@ -32,7 +33,7 @@ async function fetchKlaviyoAPI(endpoint) {
         method: 'GET',
         headers: {
             'Authorization': `Klaviyo-API-Key ${KLAVIYO_API_KEY}`,
-            'revision': '2024-10-15',
+            'revision': KLAVIYO_REVISION,
             'Accept': 'application/json'
         }
     });
@@ -52,8 +53,7 @@ function delay(ms) {
 // Helper function to fetch all flow actions (emails) for a flow
 async function fetchFlowActions(flowId) {
     try {
-        const data = await fetchKlaviyoAPI(`/flows/${flowId}/flow-actions`);
-        return data.data || [];
+        return await fetchAllPages(`/flows/${flowId}/flow-actions`, ep => fetchKlaviyoAPI(ep));
     } catch (error) {
         console.error(`Error fetching actions for flow ${flowId}:`, error.message);
         return [];
@@ -63,8 +63,7 @@ async function fetchFlowActions(flowId) {
 // Helper function to fetch flow messages for an action (to get email names)
 async function fetchFlowMessages(actionId) {
     try {
-        const data = await fetchKlaviyoAPI(`/flow-actions/${actionId}/flow-messages`);
-        return data.data || [];
+        return await fetchAllPages(`/flow-actions/${actionId}/flow-messages`, ep => fetchKlaviyoAPI(ep));
     } catch (error) {
         console.error(`Error fetching messages for action ${actionId}:`, error.message);
         return [];
