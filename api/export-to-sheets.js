@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { KLAVIYO_REVISION, fetchAllPages } from '../lib/klaviyoApi.js';
 
 // Helper to authenticate with Google Sheets API
 function getGoogleSheetsClient() {
@@ -20,7 +21,7 @@ async function fetchFlowsData(klaviyoApiKey, includeScreenshots = true) {
             method: 'GET',
             headers: {
                 'Authorization': `Klaviyo-API-Key ${klaviyoApiKey}`,
-                'revision': '2024-10-15',
+                'revision': KLAVIYO_REVISION,
                 'Accept': 'application/json'
             }
         });
@@ -45,8 +46,7 @@ async function fetchFlowsData(klaviyoApiKey, includeScreenshots = true) {
         const flow = liveFlows[i];
         if (i > 0) await delay(500);
 
-        const actionsData = await fetchKlaviyoAPI(`/flows/${flow.id}/flow-actions`);
-        const actions = actionsData.data || [];
+        const actions = await fetchAllPages(`/flows/${flow.id}/flow-actions`, fetchKlaviyoAPI);
         const emailActions = actions.filter(action => action.attributes?.action_type === 'SEND_EMAIL');
 
         const emails = [];
@@ -54,8 +54,7 @@ async function fetchFlowsData(klaviyoApiKey, includeScreenshots = true) {
             const action = emailActions[j];
             if (j > 0) await delay(500);
 
-            const messagesData = await fetchKlaviyoAPI(`/flow-actions/${action.id}/flow-messages`);
-            const messages = messagesData.data || [];
+            const messages = await fetchAllPages(`/flow-actions/${action.id}/flow-messages`, fetchKlaviyoAPI);
             const firstMessage = messages[0];
 
             let screenshotUrl = null;

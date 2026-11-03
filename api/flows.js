@@ -1,10 +1,12 @@
+import { KLAVIYO_REVISION, fetchAllPages } from '../lib/klaviyoApi.js';
+
 // Helper function to fetch from Klaviyo API
 async function fetchKlaviyoAPI(endpoint, apiKey) {
     const response = await fetch(`https://a.klaviyo.com/api${endpoint}`, {
         method: 'GET',
         headers: {
             'Authorization': `Klaviyo-API-Key ${apiKey}`,
-            'revision': '2024-10-15',
+            'revision': KLAVIYO_REVISION,
             'Accept': 'application/json'
         }
     });
@@ -24,8 +26,7 @@ function delay(ms) {
 // Helper function to fetch all flow actions (emails) for a flow
 async function fetchFlowActions(flowId, apiKey) {
     try {
-        const data = await fetchKlaviyoAPI(`/flows/${flowId}/flow-actions`, apiKey);
-        return data.data || [];
+        return await fetchAllPages(`/flows/${flowId}/flow-actions`, ep => fetchKlaviyoAPI(ep, apiKey));
     } catch (error) {
         console.error(`Error fetching actions for flow ${flowId}:`, error.message);
         return [];
@@ -35,8 +36,7 @@ async function fetchFlowActions(flowId, apiKey) {
 // Helper function to fetch flow messages for an action (to get email names)
 async function fetchFlowMessages(actionId, apiKey) {
     try {
-        const data = await fetchKlaviyoAPI(`/flow-actions/${actionId}/flow-messages`, apiKey);
-        return data.data || [];
+        return await fetchAllPages(`/flow-actions/${actionId}/flow-messages`, ep => fetchKlaviyoAPI(ep, apiKey));
     } catch (error) {
         console.error(`Error fetching messages for action ${actionId}:`, error.message);
         return [];
