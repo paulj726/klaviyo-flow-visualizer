@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const { actionType, delayBefore, messageFields } = require('./lib/klaviyoFlowShape');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 
@@ -167,9 +168,9 @@ app.get('/api/flows', async (req, res) => {
             const actions = await fetchFlowActions(flow.id);
 
             // Filter for email actions only
-            // Note: action_type is "SEND_EMAIL", "SEND_SMS", etc.
+            // Type lives at attributes.definition.type (send-email) since 2025-01-15; legacy action_type kept as fallback
             const emailActions = actions.filter(action =>
-                action.attributes?.action_type === 'SEND_EMAIL'
+                actionType(action) === 'send-email'
             );
 
             // Fetch email names for each action with rate limiting
@@ -185,7 +186,7 @@ app.get('/api/flows', async (req, res) => {
                 // Fetch flow messages to get the email name
                 const messages = await fetchFlowMessages(action.id);
                 const firstMessage = messages[0];
-                const emailName = firstMessage?.attributes?.name || `Email ${j + 1}`;
+                const emailName = messageFields(firstMessage, action).name || `Email ${j + 1}`;
                 const messageId = firstMessage?.id;
 
                 // Fetch template HTML and generate screenshot (skip in production to avoid timeout)
@@ -205,9 +206,7 @@ app.get('/api/flows', async (req, res) => {
                 }
 
                 // Extract delay info from settings if available
-                const emailDelay = action.attributes?.settings?.delay
-                    || action.attributes?.settings?.time_delay
-                    || 'Immediately';
+                const emailDelay = delayBefore(action, actions);
 
                 emailsWithNames.push({
                     id: action.id,

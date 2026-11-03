@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { actionType, delayBefore, messageFields } from '../lib/klaviyoFlowShape.js';
 
 // Helper to authenticate with Google Sheets API
 function getGoogleSheetsClient() {
@@ -47,7 +48,7 @@ async function fetchFlowsData(klaviyoApiKey, includeScreenshots = true) {
 
         const actionsData = await fetchKlaviyoAPI(`/flows/${flow.id}/flow-actions`);
         const actions = actionsData.data || [];
-        const emailActions = actions.filter(action => action.attributes?.action_type === 'SEND_EMAIL');
+        const emailActions = actions.filter(action => actionType(action) === 'send-email');
 
         const emails = [];
         for (let j = 0; j < emailActions.length; j++) {
@@ -89,8 +90,8 @@ async function fetchFlowsData(klaviyoApiKey, includeScreenshots = true) {
 
             emails.push({
                 id: action.id,
-                name: firstMessage?.attributes?.name || `Email ${j + 1}`,
-                delay: action.attributes?.settings?.delay || 'Immediately',
+                name: messageFields(firstMessage, action).name || `Email ${j + 1}`,
+                delay: delayBefore(action, actions),
                 screenshotUrl,
                 tags: [],
                 metrics: { openRate: 0, clickRate: 0, conversionRate: 0 }

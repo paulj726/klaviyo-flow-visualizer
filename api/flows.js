@@ -1,3 +1,5 @@
+import { actionType, delayBefore, messageFields } from '../lib/klaviyoFlowShape.js';
+
 // Helper function to fetch from Klaviyo API
 async function fetchKlaviyoAPI(endpoint, apiKey) {
     const response = await fetch(`https://a.klaviyo.com/api${endpoint}`, {
@@ -116,7 +118,7 @@ export default async function handler(req, res) {
 
             // Filter for email actions only
             const emailActions = actions.filter(action =>
-                action.attributes?.action_type === 'SEND_EMAIL'
+                actionType(action) === 'send-email'
             );
 
             // Fetch email names for each action with rate limiting
@@ -132,12 +134,10 @@ export default async function handler(req, res) {
                 // Fetch flow messages to get the email name
                 const messages = await fetchFlowMessages(action.id, KLAVIYO_API_KEY);
                 const firstMessage = messages[0];
-                const emailName = firstMessage?.attributes?.name || `Email ${j + 1}`;
+                const emailName = messageFields(firstMessage, action).name || `Email ${j + 1}`;
 
                 // Extract delay info from settings if available
-                const emailDelay = action.attributes?.settings?.delay
-                    || action.attributes?.settings?.time_delay
-                    || 'Immediately';
+                const emailDelay = delayBefore(action, actions);
 
                 emailsWithNames.push({
                     id: action.id,
